@@ -1,4 +1,4 @@
-<domain type='kvm' id='2'>
+<domain type='kvm'>
   <name>win10</name>
   <uuid>188bf72b-7797-4056-9bac-d69332661b8c</uuid>
   <description>OVMF passthrough without issues</description>
@@ -8,6 +8,7 @@
     <hugepages/>
   </memoryBacking>
   <vcpu placement='static'>6</vcpu>
+  <iothreads>1</iothreads>
   <cputune>
     <vcpupin vcpu='0' cpuset='6'/>
     <vcpupin vcpu='1' cpuset='7'/>
@@ -15,10 +16,8 @@
     <vcpupin vcpu='3' cpuset='9'/>
     <vcpupin vcpu='4' cpuset='10'/>
     <vcpupin vcpu='5' cpuset='11'/>
+    <iothreadpin iothread='1' cpuset='0-5'/>
   </cputune>
-  <resource>
-    <partition>/machine</partition>
-  </resource>
   <os>
     <type arch='x86_64' machine='pc-i440fx-2.7'>hvm</type>
     <loader readonly='yes' type='pflash'>/usr/share/ovmf/ovmf_code_x64.bin</loader>
@@ -29,10 +28,7 @@
     <acpi/>
     <apic/>
     <hyperv>
-      <relaxed state='on'/>
-      <vapic state='on'/>
-      <spinlocks state='on' retries='8191'/>
-      <vendor_id state='on' value='358894573144'/>
+      <vendor_id state='on' value='112548897a42'/>
     </hyperv>
     <kvm>
       <hidden state='on'/>
@@ -41,7 +37,6 @@
   </features>
   <cpu mode='host-passthrough' check='none'>
     <topology sockets='1' cores='3' threads='2'/>
-    <feature policy='disable' name='smep'/>
   </cpu>
   <clock offset='localtime'>
     <timer name='rtc' tickpolicy='catchup'/>
@@ -58,130 +53,91 @@
   <devices>
     <emulator>/usr/sbin/qemu-system-x86_64</emulator>
     <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2' cache='none' io='native'/>
+      <driver name='qemu' type='qcow2' cache='writeback' io='threads'/>
       <source file='/home/vvorth/share/vm/w10.qcow2'/>
-      <backingStore/>
-      <target dev='vda' bus='virtio'/>
+      <target dev='sda' bus='scsi'/>
       <boot order='1'/>
-      <alias name='virtio-disk0'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
-    </disk>
-    <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2' cache='none' io='native'/>
-      <source file='/home/vvorth/share/vm/data.qcow2'/>
-      <backingStore/>
-      <target dev='vdb' bus='virtio'/>
-      <alias name='virtio-disk1'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x0a' function='0x0'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
     </disk>
     <disk type='block' device='disk'>
       <driver name='qemu' type='raw' cache='none' io='native'/>
       <source dev='/dev/sdc'/>
-      <backingStore/>
-      <target dev='vdc' bus='virtio'/>
-      <alias name='virtio-disk2'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x0b' function='0x0'/>
+      <target dev='sdb' bus='scsi'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='1'/>
     </disk>
-    <controller type='pci' index='0' model='pci-root'>
-      <alias name='pci.0'/>
-    </controller>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <target dev='sdc' bus='scsi'/>
+      <readonly/>
+      <address type='drive' controller='0' bus='0' target='0' unit='2'/>
+    </disk>
+    <controller type='pci' index='0' model='pci-root'/>
     <controller type='pci' index='1' model='pci-bridge'>
       <model name='pci-bridge'/>
       <target chassisNr='1'/>
-      <alias name='pci.1'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
     </controller>
-    <controller type='virtio-serial' index='0'>
-      <alias name='virtio-serial0'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x06' function='0x0'/>
-    </controller>
-    <controller type='sata' index='0'>
-      <alias name='sata0'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x0c' function='0x0'/>
-    </controller>
     <controller type='usb' index='0' model='ich9-ehci1'>
-      <alias name='usb'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x7'/>
     </controller>
     <controller type='usb' index='0' model='ich9-uhci1'>
-      <alias name='usb'/>
       <master startport='0'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x0' multifunction='on'/>
     </controller>
     <controller type='usb' index='0' model='ich9-uhci2'>
-      <alias name='usb'/>
       <master startport='2'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x1'/>
     </controller>
     <controller type='usb' index='0' model='ich9-uhci3'>
-      <alias name='usb'/>
       <master startport='4'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x2'/>
     </controller>
+    <controller type='scsi' index='0' model='virtio-scsi'>
+      <driver queues='6'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+    </controller>
     <interface type='network'>
       <mac address='52:54:00:2c:1e:fc'/>
-      <source network='default' bridge='virbr0'/>
-      <target dev='vnet0'/>
+      <source network='host-bridge'/>
       <model type='virtio'/>
-      <alias name='net0'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
     </interface>
-    <input type='mouse' bus='ps2'>
-      <alias name='input0'/>
-    </input>
-    <input type='keyboard' bus='ps2'>
-      <alias name='input1'/>
-    </input>
+    <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
     <hostdev mode='subsystem' type='pci' managed='yes'>
-      <driver name='vfio'/>
       <source>
         <address domain='0x0000' bus='0x09' slot='0x00' function='0x0'/>
       </source>
-      <alias name='hostdev0'/>
-      <rom bar='on' file='/home/share/vm/1050TiSCbios.dump'/>
+      <rom bar='on' file='/home/share/vm/1060_trim_head.rom'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0' multifunction='on'/>
     </hostdev>
     <hostdev mode='subsystem' type='pci' managed='yes'>
-      <driver name='vfio'/>
       <source>
         <address domain='0x0000' bus='0x09' slot='0x00' function='0x1'/>
       </source>
-      <alias name='hostdev1'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x1'/>
     </hostdev>
     <hostdev mode='subsystem' type='pci' managed='yes'>
-      <driver name='vfio'/>
       <source>
         <address domain='0x0000' bus='0x11' slot='0x00' function='0x0'/>
       </source>
-      <alias name='hostdev2'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x0' multifunction='on'/>
     </hostdev>
     <hostdev mode='subsystem' type='pci' managed='yes'>
-      <driver name='vfio'/>
       <source>
         <address domain='0x0000' bus='0x11' slot='0x00' function='0x2'/>
       </source>
-      <alias name='hostdev3'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x2'/>
     </hostdev>
     <hostdev mode='subsystem' type='pci' managed='yes'>
-      <driver name='vfio'/>
       <source>
         <address domain='0x0000' bus='0x11' slot='0x00' function='0x3'/>
       </source>
-      <alias name='hostdev4'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x3'/>
     </hostdev>
     <memballoon model='virtio'>
-      <alias name='balloon0'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
     </memballoon>
   </devices>
-  <seclabel type='none' model='none'/>
-  <seclabel type='dynamic' model='dac' relabel='yes'>
-    <label>+99:+78</label>
-    <imagelabel>+99:+78</imagelabel>
-  </seclabel>
 </domain>
 

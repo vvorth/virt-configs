@@ -150,9 +150,25 @@
     <hostdev mode='subsystem' type='pci' managed='yes'>
       <driver name='vfio'/>
       <source>
-        <address domain='0x0000' bus='0x07' slot='0x00' function='0x3'/>
+        <address domain='0x0000' bus='0x07' slot='0x00' function='0x0'/>
       </source>
       <alias name='hostdev2'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x0' multifunction='on'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x07' slot='0x00' function='0x2'/>
+      </source>
+      <alias name='hostdev3'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x2' multifunction='on'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x07' slot='0x00' function='0x3'/>
+      </source>
+      <alias name='hostdev4'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x3' multifunction='on'/>
     </hostdev>
     <memballoon model='virtio'>

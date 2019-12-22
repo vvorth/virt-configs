@@ -1,0 +1,51 @@
+#!/bin/bash
+
+#cpuset pseudo fs mount point
+CPUSET=/sys/fs/cgroup/cpuset
+#cpuset name for host
+SETNAME=host
+
+#vm name, starting and stopping this vm triggers actions in the script
+VM="win10"
+
+#CPU ids to leave for host usage
+HOSTCPUS="0-1,6-7"
+#NUMA memory node for host usage
+MEMNODES="0"
+
+if [[ $1 == "$VM" ]]
+then
+    case $2.$3 in
+        "prepare.begin")
+            #runs before qemu is started
+            #check if cpuset exist
+            if test -d ${CPUSET}/${SETNAME};
+            then
+                echo
+            else
+                #create cpuset if it doesn't exist
+                mkdir ${CPUSET}/${SETNAME}
+            fi
+            #set host's limits
+            /bin/echo ${HOSTCPUS} > ${CPUSET}/${SETNAME}/cpuset.cpus
+            /bin/echo ${MEMNODES} > ${CPUSET}/${SETNAME}/cpuset.mems
+
+            #migrate tasks to this cpuset
+            for i in `cat ${CPUSET}/tasks`;
+            do
+                /bin/echo ${i} > ${CPUSET}/${SETNAME}/tasks || echo
+            done
+
+        ;;
+        "release.end")
+            #runs after qemu stopped
+            if test -d ${CPUSET}/${SETNAME};
+            then
+                #if cpuset exist - migrate tasks to a root cpuset and remove host cpuset
+                sed -un p < ${CPUSET}/${SETNAME}/tasks > ${CPUSET}/tasks
+                rmdir ${CPUSET}/${SETNAME}
+            fi
+        ;;
+    esac
+fi
+
